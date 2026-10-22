@@ -1,117 +1,71 @@
-# Arquitectura inicial del sistema
+# Arquitectura inicial del sistema SIAE-HRA
 
 ## Diagrama de arquitectura
 
 ```mermaid
-flowchart TD
+flowchart TB
+    U["Personal de emergencias"]
 
-%% =========================
-%% ACTORES
-%% =========================
-subgraph ACTORES["ACTORES"]
-    Cliente["Cliente"]
-    Seller["Seller"]
-    Admin["Administrador"]
-end
+    subgraph P["1. Presentación"]
+        WEB["Aplicación web Angular"]
+        API["API REST"]
+        WEB --> API
+    end
 
-%% =========================
-%% PRESENTACIÓN
-%% =========================
-subgraph PRESENTACION["PRESENTACIÓN"]
-    Web["Aplicación Web"]
-    API["API REST"]
-end
+    subgraph N["2. Lógica de negocio"]
+        PAC["Registro de pacientes"]
+        TRI["Triaje inicial"]
+        MED["Evaluación médica inicial"]
+        ORD["Solicitudes de exámenes"]
+    end
 
-%% =========================
-%% LÓGICA DE NEGOCIO
-%% =========================
-subgraph NEGOCIO["LÓGICA DE NEGOCIO"]
-    Usuarios["Usuarios"]
-    Sellers["Sellers"]
-    Catalogo["Catálogo"]
-    Carrito["Carrito"]
-    Pedidos["Pedidos"]
-end
+    subgraph D["3. Datos e integración"]
+        BD[("Base de datos")]
+        INT["Servicios de integración"]
+    end
 
-%% =========================
-%% DATOS
-%% =========================
-subgraph DATOS["DATOS"]
-    BD["Base de datos"]
-end
+    subgraph E["Sistemas externos e internos"]
+        REN["RENIEC"]
+        HC["Historia clínica"]
+        SEG["Seguros"]
+        LAB["Laboratorio"]
+        IMG["Imágenes médicas"]
+        FAR["Farmacia"]
+    end
 
-%% =========================
-%% SISTEMAS EXTERNOS
-%% =========================
-subgraph EXTERNOS["SISTEMAS EXTERNOS"]
-    Pago["Pasarela de pago"]
-    ERP["ERP"]
-    Envio["Servicio de envío"]
-end
+    U --> WEB
+    API --> PAC
+    API --> TRI
+    API --> MED
+    API --> ORD
 
-%% =========================
-%% FLUJO PRINCIPAL
-%% =========================
-ACTORES --> Web
-Web --> API
-API --> NEGOCIO
-NEGOCIO --> BD
+    PAC --> BD
+    TRI --> BD
+    MED --> BD
+    ORD --> BD
 
-%% =========================
-%% INTEGRACIONES EXTERNAS
-%% =========================
-NEGOCIO --> Pago
-NEGOCIO --> ERP
-NEGOCIO --> Envio
+    PAC --> INT
+    MED --> INT
+    ORD --> INT
 
-%% =========================
-%% DISTRIBUCIÓN HORIZONTAL
-%% =========================
-Cliente ~~~ Seller
-Seller ~~~ Admin
-
-Usuarios ~~~ Sellers
-Sellers ~~~ Catalogo
-Catalogo ~~~ Carrito
-Carrito ~~~ Pedidos
-
-Pago ~~~ ERP
-ERP ~~~ Envio
-
-%% =========================
-%% ESTILOS
-%% =========================
-style ACTORES fill:#222,stroke:#fff,stroke-width:2px,color:#fff
-style PRESENTACION fill:#222,stroke:#fff,stroke-width:2px,color:#fff
-style NEGOCIO fill:#222,stroke:#fff,stroke-width:2px,color:#fff
-style DATOS fill:#222,stroke:#fff,stroke-width:2px,color:#fff
-style EXTERNOS fill:#222,stroke:#fff,stroke-width:2px,color:#fff
-
-style Cliente fill:#222,stroke:#fff,color:#fff
-style Seller fill:#222,stroke:#fff,color:#fff
-style Admin fill:#222,stroke:#fff,color:#fff
-
-style Web fill:#222,stroke:#fff,color:#fff
-style API fill:#222,stroke:#fff,color:#fff
-
-style Usuarios fill:#222,stroke:#fff,color:#fff
-style Sellers fill:#222,stroke:#fff,color:#fff
-style Catalogo fill:#222,stroke:#fff,color:#fff
-style Carrito fill:#222,stroke:#fff,color:#fff
-style Pedidos fill:#222,stroke:#fff,color:#fff
-
-style BD fill:#222,stroke:#fff,color:#fff
-
-style Pago fill:#222,stroke:#fff,color:#fff
-style ERP fill:#222,stroke:#fff,color:#fff
-style Envio fill:#222,stroke:#fff,color:#fff
+    INT --> REN
+    INT --> HC
+    INT --> SEG
+    INT --> LAB
+    INT --> IMG
+    INT --> FAR
 ```
+
 ## Descripción
 
-La arquitectura inicial se organiza en tres capas principales:
+La arquitectura inicial del SIAE-HRA se organiza en tres capas principales:
 
-- **Presentación:** permite la interacción de los usuarios con el sistema mediante la aplicación web y la API REST.
-- **Lógica de negocio:** contiene los principales módulos responsables de las funcionalidades del sistema: usuarios, sellers, catálogo, carrito y pedidos.
-- **Datos:** permite almacenar y consultar la información mediante una base de datos.
+- **Presentación:** permite al personal de admisión, enfermería y médicos interactuar con el sistema mediante una aplicación web y una API REST.
 
-Además, el módulo de **Pedidos** se integra con sistemas externos como la **pasarela de pago** y el **servicio de envío**.
+- **Lógica de negocio:** contiene los módulos principales responsables del registro de pacientes, triaje, evaluación médica inicial y solicitudes de exámenes.
+
+- **Datos e integración:** permite almacenar y consultar información de pacientes y atenciones mediante una base de datos, además de comunicarse con sistemas externos.
+
+El sistema se integrará con servicios de **RENIEC**, **historia clínica electrónica** y **seguros**, así como con los sistemas internos de **laboratorio, diagnóstico por imágenes y farmacia**.
+
+Estas integraciones permitirán consultar información relevante y gestionar solicitudes durante la atención inicial. Para el prototipo académico se podrán utilizar APIs simuladas.

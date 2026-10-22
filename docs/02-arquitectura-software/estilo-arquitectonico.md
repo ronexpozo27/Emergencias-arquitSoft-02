@@ -1,3 +1,3 @@
-Se utiliza el estilo Arquitectónico: monolítico + capas
+## Diagrama del estilo arquitectónico
 
-![Clean Architecture de GoPet](../../img/ArquitecturaMonoliticaMarketplaceEnCapas.png)
+![Estilo Arquitectónico SIAE-HRA](../../img/Estilo_Arquitectonico_SIAE-HRA.png)
