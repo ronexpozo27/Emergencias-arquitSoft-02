@@ -1,27 +1,30 @@
-# Requisitos funcionales
+# 03. Requisitos funcionales
 
-## Requisitos funcionales
-
-| ID | Requisito funcional |
+| **Código** | **Requisito** |
 |---|---|
-| RF01 | El sistema debe permitir buscar productos mediante criterios de búsqueda. |
-| RF02 | El sistema debe permitir consultar la información y disponibilidad de los productos. |
-| RF03 | El sistema debe permitir registrar y actualizar productos en la plataforma. |
-| RF04 | El sistema debe permitir agregar, modificar y eliminar productos del carrito de compra. |
-| RF05 | El sistema debe permitir generar un pedido a partir de los productos del carrito. |
-| RF06 | El sistema debe permitir consultar los pedidos realizados y su estado. |
-| RF07 | El sistema debe permitir registrar, actualizar y desactivar sellers de la plataforma. |
-| RF08 | El sistema debe permitir consultar el detalle de un pedido realizado. |
-
----
+| RF-01 | Registrar pacientes y permitir ingreso provisional sin DNI. |
+| RF-02 | Consultar identidad mediante RENIEC o un simulador. |
+| RF-03 | Registrar ingreso, motivo de consulta, signos vitales y triaje. |
+| RF-04 | Consultar antecedentes clínicos disponibles con autorización. |
+| RF-05 | Consultar condición de aseguramiento sin condicionar la atención. |
+| RF-06 | Registrar evaluación y notas de atención inicial. |
+| RF-07 | Generar solicitudes de laboratorio e imágenes. |
+| RF-08 | Visualizar estado y resultados disponibles de esas solicitudes. |
+| RF-09 | Mostrar lista de pacientes en atención inicial y su estado. |
+| RF-10 | Registrar indicaciones o prescripciones iniciales. |
+| RF-11 | Gestionar usuarios y roles. |
+| RF-12 | Registrar accesos y cambios importantes para auditoría. |
 
 ## Relación entre historias de usuario y requisitos funcionales
 
-| Historia de usuario | Requisitos funcionales relacionados |
+| **Historia de usuario** | **Requisitos funcionales relacionados** |
 |---|---|
-| HU01 Buscar y consultar productos | RF01, RF02 |
-| HU02 Gestionar productos | RF03 |
-| HU03 Gestionar carrito | RF04 |
-| HU04 Realizar pedido | RF05, RF08 |
-| HU05 Gestionar sellers | RF07 |
-| HU06 Consultar pedidos | RF06, RF08 |
+| HU-01 Registrar pacientes | RF-01, RF-03 |
+| HU-02 Consultar identidad en RENIEC | RF-02 |
+| HU-03 Registrar signos vitales y triaje | RF-03 |
+| HU-04 Consultar antecedentes clínicos | RF-04 |
+| HU-05 Registrar evaluación médica inicial | RF-06, RF-10 |
+| HU-06 Solicitar exámenes de laboratorio e imágenes | RF-07, RF-08 |
+| HU-07 Consultar seguro del paciente | RF-05 |
+| HU-08 Consultar estado de atención y solicitudes | RF-08, RF-09 |
+| HU-09 Gestionar usuarios y roles | RF-11, RF-12 |

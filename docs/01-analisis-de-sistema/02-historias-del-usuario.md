@@ -1,10 +1,15 @@
-# Historias de usuario
+# 02. Historias de usuario
 
-| ID | Historia de usuario |
+| **ID** | **Historia de usuario** |
 |---|---|
-| HU01 | Como cliente, quiero buscar y consultar productos, para encontrar el producto que necesito. |
-| HU02 | Como seller, quiero registrar y gestionar mis productos, para ofrecerlos a los clientes. |
-| HU03 | Como cliente, quiero gestionar los productos de mi carrito, para preparar los productos que deseo comprar. |
-| HU04 | Como cliente, quiero realizar un pedido con los productos de mi carrito, para completar mi compra. |
-| HU05 | Como administrador, quiero gestionar los sellers de la plataforma, para administrar a los vendedores registrados. |
-| HU06 | Como cliente, quiero consultar mis pedidos y su estado, para conocer el estado de mis compras. |
+| HU-01 | Como personal de admisión, quiero registrar un paciente con o sin DNI para iniciar su atención. |
+| HU-02 | Como personal de admisión, quiero consultar RENIEC para completar los datos de identidad. |
+| HU-03 | Como enfermero, quiero registrar signos vitales y triaje para informar la prioridad de atención. |
+| HU-04 | Como médico, quiero consultar los antecedentes clínicos disponibles para apoyar mi evaluación inicial. |
+| HU-05 | Como médico, quiero registrar la evaluación inicial y las indicaciones para conservarlas en el episodio. |
+| HU-06 | Como médico, quiero solicitar exámenes de laboratorio e imágenes y consultar sus resultados. |
+| HU-07 | Como personal autorizado, quiero consultar el seguro para conocer la afiliación del paciente. |
+| HU-08 | Como médico, quiero visualizar el estado del paciente y de las solicitudes realizadas. |
+| HU-09 | Como administrador, quiero asignar roles para limitar el acceso a la información. |
+
+**Regla general:** si RENIEC, historia clínica o seguros no responden, la atención sigue. El triaje y las decisiones clínicas corresponden al profesional de salud.
