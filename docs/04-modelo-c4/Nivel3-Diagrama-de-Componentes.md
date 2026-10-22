@@ -1,19 +1,21 @@
+
 # Nivel 3 · Diagrama de componentes
 
-> **Proyecto:** Marketplace · **Contenedor detallado:** API Marketplace  
+> **Proyecto:** SIAE-HRA — Sistema Integrado de Atención de Emergencias del Hospital Regional de Ayacucho  
+> **Contenedor detallado:** API SIAE-HRA  
 > **Modelo:** C4 · Nivel 3 de 4 · **Versión:** 1.0
 
 ---
 
 ## 1. Objetivo
 
-Abrir el contenedor **API Marketplace** del nivel 2 y mostrar sus **componentes**: los módulos del monolito modular, la responsabilidad de cada uno y cómo se relacionan entre sí y con la base de datos, la caché y los sistemas externos.
+Abrir el contenedor **API SIAE-HRA** del nivel 2 y mostrar sus **componentes**: los módulos del monolito modular, la responsabilidad de cada uno y sus relaciones con los demás módulos, los almacenes de datos y los sistemas integrados durante la atención inicial de emergencias.
 
-| Aspecto | Descripción |
+| **Aspecto** | **Descripción** |
 |---|---|
-| Pregunta que responde | ¿Cómo se divide el backend por dentro y qué hace cada parte? |
-| Audiencia | Arquitectos y desarrolladores |
-| Qué es un componente | Un grupo de funcionalidades con una responsabilidad clara, accesible mediante una interfaz. En este proyecto, cada **módulo** del monolito es un componente |
+| Pregunta que responde | ¿Cómo está dividido internamente el backend y qué hace cada módulo? |
+| Audiencia | Arquitectos, desarrolladores y docentes. |
+| Qué es un componente | Unidad funcional con una responsabilidad definida y una interfaz de acceso. En este diseño, cada módulo del monolito se representa como un componente. |
 | Nivel anterior | `Nivel2-DiagramadeContenedores.md` |
 | Siguiente nivel | `Nivel4-DiagramadeCodigo.md` |
 
@@ -21,65 +23,60 @@ Abrir el contenedor **API Marketplace** del nivel 2 y mostrar sus **componentes*
 
 ## 2. Diagrama
 
-![Diagrama de componentes de la API Marketplace](/img/nivel3-componentes.png)
-
-> Archivo editable: `img/fuentes/nivel3-componentes.drawio`
+![Diagrama de componentes de la API SIAE-HRA](../../img/nivel3-componentes-siae-hra.png)
 
 ---
 
 ## 3. Componentes
 
-| Componente | Responsabilidad | Funcionalidades principales | Carpeta en el código |
+| **Componente** | **Responsabilidad** | **Funcionalidades principales** | **Carpeta propuesta en el código** |
 |---|---|---|---|
-| **API REST** | Punto de entrada HTTP del contenedor | Rutas `/api/v1`, autenticación JWT, validación de la entrada, manejo de errores | `src/api/` |
-| **Usuarios** | Identidad y acceso | Registro, inicio de sesión, roles (cliente, seller, administrador) | `src/modules/usuarios/` |
-| **Sellers** | Gestión de vendedores | Alta y validación de tiendas | `src/modules/sellers/` |
-| **Catálogo** | Productos disponibles | Productos, categorías, precios y stock | `src/modules/catalogo/` |
-| **Carrito** | Selección previa a la compra | Agregar y quitar ítems, calcular totales | `src/modules/carrito/` |
-| **Pedidos** | Proceso de compra | Checkout, estados del pedido, sincronización con el ERP | `src/modules/pedidos/` |
-| **Pagos** | Cobros | Cobro mediante la pasarela de pago | `src/modules/pagos/` |
-| **Envíos** | Despacho de pedidos | Solicitar y consultar envíos con el courier | `src/modules/envios/` |
-| **Notificaciones** | Comunicación con el cliente | Avisar el estado del pedido | `src/modules/notificaciones/` |
+| **API REST** | Punto de entrada HTTP del backend. | Rutas `/api/v1`, autenticación, autorización por roles, validación de datos y manejo de errores. | `src/api/` |
+| **Usuarios** | Control de acceso al sistema. | Autenticación, cuentas y roles para admisión, enfermería, médicos y administrador TI. | `src/modules/usuarios/` |
+| **Pacientes** | Identificación y registro inicial. | Búsqueda, registro provisional, consulta de identidad en RENIEC y consulta de aseguramiento. | `src/modules/pacientes/` |
+| **Triaje** | Registro de la valoración inicial de enfermería. | Signos vitales, motivo de consulta y prioridad asignada por personal autorizado. | `src/modules/triaje/` |
+| **Atención médica** | Registro de la evaluación inicial. | Consulta del episodio, antecedentes clínicos disponibles, evaluación e indicaciones médicas. | `src/modules/atencion/` |
+| **Órdenes** | Gestión de solicitudes originadas en la atención. | Solicitudes de laboratorio, imágenes y prescripciones; consulta de sus estados y resultados disponibles. | `src/modules/ordenes/` |
 
 ---
 
 ## 4. Relaciones entre componentes
 
-| Origen | Destino | Descripción | Tipo de comunicación |
+| **Origen** | **Destino** | **Descripción** | **Tipo de comunicación** |
 |---|---|---|---|
-| Aplicación web | API REST | Llama a la API | HTTPS/JSON |
-| API REST | Módulos de negocio | Invoca los casos de uso | Llamada en memoria |
-| Sellers | Usuarios | Valida la cuenta del seller | Llamada en memoria (API pública del módulo) |
-| Catálogo | Sellers | Asocia cada producto a su seller | Llamada en memoria |
-| Carrito | Catálogo | Consulta precio y stock | Llamada en memoria |
-| Pedidos | Carrito | Convierte el carrito en pedido | Llamada en memoria |
-| Pedidos | Pagos | Solicita el cobro | Llamada en memoria |
-| Pedidos | Envíos | Solicita el despacho | Llamada en memoria |
-| Pedidos | Notificaciones | Publica el cambio de estado | Evento en memoria |
+| Aplicación web | API REST | Envía solicitudes del personal sanitario y administrativo. | HTTPS/JSON |
+| API REST | Módulos de negocio | Invoca los casos de uso y verifica permisos. | Llamadas internas en memoria |
+| Triaje | Pacientes | Obtiene los datos del paciente y su episodio de emergencia. | API pública del módulo, en memoria |
+| Atención médica | Pacientes | Consulta la identificación y el episodio del paciente. | API pública del módulo, en memoria |
+| Atención médica | Triaje | Consulta el registro de triaje y signos vitales. | API pública del módulo, en memoria |
+| Órdenes | Atención médica | Asocia solicitudes de exámenes y prescripciones a la atención registrada. | API pública del módulo, en memoria |
+| Módulos protegidos | Usuarios | Verifican la identidad y los permisos del usuario mediante los mecanismos de autorización de la API. | Servicio interno de autorización |
 
 ---
 
-## 5. Relaciones con contenedores y sistemas externos
+## 5. Relaciones con contenedores y sistemas integrados
 
-| Componente | Destino | Descripción | Protocolo | Patrón aplicado |
+| **Componente** | **Destino** | **Descripción** | **Interfaz propuesta** | **Patrón aplicado** |
 |---|---|---|---|---|
-| Todos los módulos | Base de datos (PostgreSQL) | Cada módulo lee y escribe **solo sus propias tablas** | SQL | Repository |
-| Catálogo | Caché (Redis) | Guarda y lee productos en memoria | TCP | Decorator |
-| Pagos | Pasarela de pago | Cobra | HTTPS/REST | Adapter |
-| Pedidos | ERP | Sincroniza pedidos | HTTPS/REST | Adapter |
-| Envíos | Servicio de envío | Crea envíos | HTTPS/REST | Adapter |
+| Cada módulo | Base de datos (PostgreSQL) | Lee y escribe exclusivamente sus datos mediante su propio repositorio. | SQL/TCP | Repositorio |
+| Usuarios | Caché (Redis) | Consulta configuraciones temporales no sensibles cuando sea necesario. | TCP, red interna | Decorador (opcional) |
+| Pacientes | RENIEC | Consulta identidad, cuando exista acceso autorizado. | Adaptador real o simulado | Adaptador |
+| Pacientes | Seguros / SIS | Consulta información de aseguramiento sin bloquear el registro. | Adaptador real o simulado | Adaptador |
+| Atención médica | Historia clínica electrónica (HCE) | Consulta antecedentes clínicos pertinentes, sujetos a autorización. | Adaptador de interoperabilidad | Adaptador |
+| Órdenes | Laboratorio (LIS) | Solicita exámenes y consulta resultados. | API o servicio simulado | Adaptador |
+| Órdenes | Imágenes médicas (RIS/PACS) | Solicita estudios y consulta informes disponibles. | API o servicio simulado | Adaptador |
+| Órdenes | Farmacia | Comunica prescripciones y consulta estados disponibles. | API o servicio simulado | Adaptador |
 
 ---
 
 ## 6. Reglas del monolito modular
 
-| # | Regla | Motivo |
+| **#** | **Regla** | **Motivo** |
 |---|---|---|
-| 1 | Todos los componentes se despliegan juntos en el contenedor API Marketplace | Es un monolito: un solo proceso y un solo despliegue |
-| 2 | Un módulo usa a otro solo a través de su API pública (`index.js`) | Evita que un cambio interno en un módulo rompa a los demás |
-| 3 | Un módulo no lee ni escribe las tablas de otro módulo | Mantiene la independencia de los datos de cada módulo |
-| 4 | Cada sistema externo se integra en un único módulo | La integración queda en un solo lugar y es fácil de reemplazar |
-| 5 | Cada módulo se organiza por dentro con Clean Architecture | Las reglas de negocio no dependen de la tecnología (ver nivel 4) |
-
----
-
+| 1 | Todos los componentes del backend se despliegan juntos dentro de la API SIAE-HRA. | Mantener un monolito modular con un solo despliegue. |
+| 2 | Un módulo se comunica con otro únicamente mediante su interfaz pública (`index.ts` o servicio expuesto). | Evitar dependencias directas de clases y archivos internos ajenos. |
+| 3 | Cada módulo administra sus propios datos mediante repositorios; no modifica directamente las tablas de otro módulo. | Mantener límites funcionales claros. |
+| 4 | Las conexiones con RENIEC, seguros, historia clínica y servicios hospitalarios se encapsulan en adaptadores. | Facilitar el reemplazo por APIs simuladas o autorizadas. |
+| 5 | Cada módulo organiza su lógica con Arquitectura Limpia: presentación, aplicación, dominio e infraestructura. | Proteger las reglas de negocio frente a cambios de tecnología. |
+| 6 | Si RENIEC o seguros no están disponibles, Pacientes permite el registro provisional y no bloquea la atención inicial. | Asegurar la continuidad del proceso de emergencia. |
+| 7 | Las consultas clínicas exigen permisos y generan registros de auditoría. | Resguardar la información sensible y permitir trazabilidad. |

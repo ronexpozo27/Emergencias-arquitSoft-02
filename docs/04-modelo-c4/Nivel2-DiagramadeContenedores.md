@@ -1,19 +1,20 @@
+
 # Nivel 2 · Diagrama de contenedores
 
-> **Proyecto:** Marketplace  
+> **Proyecto:** SIAE-HRA — Sistema Integrado de Atención de Emergencias del Hospital Regional de Ayacucho  
 > **Modelo:** C4 · Nivel 2 de 4 · **Versión:** 1.0
 
 ---
 
 ## 1. Objetivo
 
-Abrir la caja «Marketplace» del nivel 1 y mostrar los **contenedores** que la forman: las aplicaciones y almacenes de datos que se ejecutan por separado, la tecnología de cada uno y cómo se comunican.
+Abrir la caja **SIAE-HRA** del nivel 1 y mostrar los **contenedores** que componen el sistema: aplicaciones, almacenes de datos, tecnologías propuestas y sus comunicaciones durante la atención inicial de emergencias.
 
-| Aspecto | Descripción |
+| **Aspecto** | **Descripción** |
 |---|---|
-| Pregunta que responde | ¿De qué piezas ejecutables se compone el sistema y con qué tecnología? |
-| Audiencia | Arquitectos, desarrolladores, operaciones |
-| Qué es un contenedor | Algo que se ejecuta o almacena datos de forma independiente: una aplicación web, una API, una base de datos (no es lo mismo que un contenedor Docker) |
+| Pregunta que responde | ¿Qué aplicaciones y almacenes de datos conforman el sistema y cómo se comunican? |
+| Audiencia | Arquitectos, desarrolladores, docentes y responsables de operaciones. |
+| Qué es un contenedor | Una aplicación o almacén de datos desplegable de manera independiente; no equivale necesariamente a un contenedor Docker. |
 | Nivel anterior | `Nivel1-DiagramadeContextodelSistema.md` |
 | Siguiente nivel | `Nivel3-Diagrama-de-Componentes.md` |
 
@@ -21,57 +22,58 @@ Abrir la caja «Marketplace» del nivel 1 y mostrar los **contenedores** que la 
 
 ## 2. Diagrama
 
-![Diagrama de contenedores del Marketplace](/img/nivel2-contenedores.png)
-
-> Archivo editable: `img/fuentes/nivel2-contenedores.drawio`
+![Diagrama de contenedores del SIAE-HRA](../../img/nivel2-contenedores-siae-hra.png)
 
 ---
 
 ## 3. Contenedores
 
-| Contenedor | Tecnología | Responsabilidad | Datos que maneja |
+| **Contenedor** | **Tecnología propuesta** | **Responsabilidad** | **Datos que maneja** |
 |---|---|---|---|
-| **Aplicación web** | SPA · Angular | Interfaz de compra para clientes, gestión de productos para sellers y panel de administración. Se ejecuta en el navegador | Ninguno persistente; solo el estado de la pantalla |
-| **API Marketplace** | Node.js + Express | Expone la API REST, aplica las reglas de negocio e integra los sistemas externos. Es un **monolito modular**: un solo proceso con módulos internos | Ninguno propio; usa la base de datos y la caché |
-| **Base de datos** | PostgreSQL | Almacena de forma permanente la información del negocio | Usuarios, sellers, productos, carritos y pedidos |
-| **Caché** | Redis | Guarda en memoria los productos más consultados para responder más rápido | Copia temporal del catálogo |
+| **Aplicación web** | SPA · Angular y TypeScript | Interfaz utilizada por admisión, enfermería, médicos y administración TI para la atención inicial. | Datos necesarios para la sesión y el episodio en pantalla; sin persistencia clínica local permanente. |
+| **API SIAE-HRA** | Node.js + TypeScript + Express | Expone una API REST, aplica las reglas de negocio y coordina las integraciones. Se organiza como un **monolito modular**. | Procesa pacientes, triajes, evaluaciones, órdenes, usuarios y respuestas de los sistemas integrados. |
+| **Base de datos** | PostgreSQL | Almacena los registros propios del sistema de manera persistente. | Pacientes, episodios de emergencia, triaje, evaluaciones, órdenes y usuarios. |
+| **Caché** | Redis | Agiliza consultas repetitivas de información no clínica y temporal; no sustituye la base de datos. | Catálogos y configuraciones no sensibles, con vencimiento. |
 
 ---
 
 ## 4. Relaciones
 
-| Origen | Destino | Descripción | Protocolo |
+| **Origen** | **Destino** | **Descripción** | **Protocolo o interfaz prevista** |
 |---|---|---|---|
-| Cliente, Seller, Administrador | Aplicación web | Usan la aplicación desde el navegador | HTTPS |
-| Aplicación web | API Marketplace | Llama a la API | HTTPS/JSON |
-| API Marketplace | Base de datos | Lee y escribe información | SQL sobre TCP |
-| API Marketplace | Caché | Lee y escribe el catálogo en memoria | TCP |
-| API Marketplace | Pasarela de pago | Solicita cobros | HTTPS/REST |
-| API Marketplace | ERP | Sincroniza pedidos | HTTPS/REST |
-| API Marketplace | Servicio de envío | Crea envíos | HTTPS/REST |
+| Admisión, enfermería, médico y administrador TI | Aplicación web | Utilizan las funciones correspondientes a sus roles. | HTTPS |
+| Aplicación web | API SIAE-HRA | Envía solicitudes y recibe respuestas. | HTTPS/JSON |
+| API SIAE-HRA | PostgreSQL | Consulta y almacena información del sistema. | SQL/TCP |
+| API SIAE-HRA | Redis | Consulta y actualiza datos temporales no sensibles. | TCP en red interna |
+| API SIAE-HRA | RENIEC | Consulta datos de identificación del paciente. | Adaptador a servicio autorizado o simulado |
+| API SIAE-HRA | Seguros / SIS | Consulta información de aseguramiento disponible. | Adaptador a servicio habilitado o simulado |
+| API SIAE-HRA | Historia clínica electrónica | Solicita antecedentes clínicos pertinentes. | Adaptador de interoperabilidad, según sistema |
+| API SIAE-HRA | Laboratorio (LIS) | Envía solicitudes de exámenes y consulta resultados. | API/adaptador, real o simulado |
+| API SIAE-HRA | Imágenes médicas (RIS/PACS) | Solicita estudios y consulta informes. | API/adaptador, real o simulado |
+| API SIAE-HRA | Farmacia | Consulta y gestiona información de prescripciones. | API/adaptador, real o simulado |
 
 ---
 
 ## 5. Decisiones arquitectónicas reflejadas
 
-| Decisión | Alternativa descartada | Motivo |
+| **Decisión** | **Alternativa descartada** | **Motivo** |
 |---|---|---|
-| Un único contenedor de backend (monolito modular) | Microservicios | Equipo pequeño y plazo acotado; los módulos permiten separar servicios en el futuro si es necesario |
-| Frontend separado del backend (SPA + API REST) | Páginas generadas en el servidor | El frontend y el backend evolucionan y se despliegan de forma independiente |
-| PostgreSQL como base de datos | Base de datos NoSQL | Los pedidos, pagos y stock necesitan transacciones y consistencia |
-| Redis como caché del catálogo | Consultar siempre la base de datos | El catálogo es lo más consultado; la caché reduce el tiempo de respuesta |
-| Solo la API se comunica con los sistemas externos | Llamar a la pasarela desde el navegador | Las credenciales de los proveedores quedan en el servidor y no se exponen al cliente |
+| Un backend único organizado en módulos. | Microservicios independientes. | Reduce la complejidad de desarrollo y despliegue en el proyecto académico. |
+| Frontend separado del backend. | Renderizar toda la interfaz en el servidor. | Permite separar presentación y reglas de negocio. |
+| PostgreSQL para persistencia. | Base de datos exclusivamente NoSQL. | Permite almacenar datos relacionados y realizar operaciones transaccionales. |
+| Redis para datos temporales no clínicos. | Consultar siempre la base de datos. | Puede reducir consultas repetitivas sin guardar historias clínicas en caché. |
+| Integraciones externas mediante adaptadores del backend. | Acceso directo desde el navegador. | Separa proveedores y mantiene credenciales fuera del cliente. |
+| Registro provisional de pacientes. | Exigir una respuesta de RENIEC antes del ingreso. | Permite continuar el flujo cuando faltan documentos o fallan los servicios externos. |
 
 ---
 
 ## 6. Seguridad entre contenedores
 
-| Comunicación | Medida |
+| **Comunicación** | **Medida** |
 |---|---|
-| Navegador → Aplicación web y API | Tráfico cifrado con HTTPS |
-| Aplicación web → API | Autenticación con token JWT en cada petición |
-| API → Base de datos y caché | Acceso solo desde la red interna; credenciales en variables de entorno |
-| API → Sistemas externos | Credenciales de cada proveedor guardadas solo en el servidor |
-
----
-
+| Navegador → Aplicación web y API | Cifrado mediante HTTPS. |
+| Aplicación web → API | Autenticación y autorización por roles en las operaciones protegidas. |
+| API → PostgreSQL y Redis | Acceso restringido a la red interna y credenciales gestionadas en el servidor. |
+| API → Sistemas integrados | Credenciales institucionales, cuando existan, y adaptadores sin secretos en el frontend. |
+| Acceso a datos clínicos | Verificación de permisos y registro de auditoría. |
+| Fallo de RENIEC o seguros | Permitir el registro provisional y la continuidad de la atención inicial. |
