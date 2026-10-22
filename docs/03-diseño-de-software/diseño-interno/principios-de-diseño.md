@@ -1,42 +1,59 @@
+
 # Principios de diseño (SOLID)
 
 ## Objetivo
 
-Documentar cómo se aplican los principios SOLID en el backend del Marketplace, organizado con Clean Architecture, para que cada módulo se programe de forma uniforme y las reglas de negocio no dependan de la tecnología.
+Documentar cómo se aplican los principios SOLID en el backend del SIAE-HRA, organizado con Clean Architecture, para mantener una estructura uniforme y evitar que las reglas de negocio dependan de tecnologías externas.
 
 ## Contexto
 
-- **Estilo:** monolito modular (Node.js + Express).
-- **Enfoque interno:** Clean Architecture (presentación, aplicación, dominio, infraestructura).
-- **Módulo de referencia:** Pedidos, porque integra base de datos, pasarela de pagos y ERP.
+- **Estilo:** monolito modular (Node.js + TypeScript + Express).
+- **Enfoque interno:** Arquitectura Limpia (presentación, aplicación, dominio e infraestructura).
+- **Módulo de referencia:** Pacientes, porque integra la base de datos, RENIEC y servicios de seguros.
+- **Alcance:** atención inicial de emergencias.
 
-## SOLID en el módulo Pedidos
+## SOLID en el módulo Pacientes
 
-![SOLID en el módulo Pedidos](/img/solid-modulo-pedidos.png)
+### Diagrama de aplicación de SOLID
 
-| Principio | Dónde se aplica (capa) | Cómo se cumple en el Marketplace | Archivos |
+![Arquitectura SOLID del módulo Pacientes](../../../img/Arquitectura%20SOLID%20del%20m%C3%B3dulo%20Pacientes.png)
+
+**Leyenda:** S = Responsabilidad única, O = Abierto/cerrado, L = Sustitución de Liskov, I = Segregación de interfaces y D = Inversión de dependencias.
+
+## Aplicación de los principios SOLID
+
+| **Principio** | **Dónde se aplica (capa)** | **Cómo se cumple en SIAE-HRA** | **Archivos propuestos** |
 |---|---|---|---|
-| **S** · Responsabilidad única | Todas las capas | Cada clase tiene una sola tarea: el controlador recibe la petición HTTP, el caso de uso coordina la compra, la entidad aplica las reglas del pedido y el repositorio guarda en PostgreSQL | `order.controller.js`, `crear-pedido.use-case.js`, `pedido.js`, `postgres-order-repository.js` |
-| **O** · Abierto/cerrado | Infraestructura | Para agregar una nueva pasarela (PayPal) se crea un nuevo adaptador; el caso de uso de compra no se modifica | `stripe-payment.adapter.js`, `paypal-payment.adapter.js` |
-| **L** · Sustitución de Liskov | Infraestructura | Stripe y PayPal devuelven el mismo resultado `{ aprobado, autorizacion }`; el caso de uso funciona igual con cualquiera | `stripe-payment.adapter.js`, `paypal-payment.adapter.js` |
-| **I** · Segregación de interfaces | Dominio | Cada interfaz tiene solo lo que Pedidos necesita: `PaymentPort` solo cobra, `ErpPort` solo registra el pedido, `OrderRepository` solo guarda y busca pedidos | `payment-port.js`, `erp-port.js`, `order-repository.js` |
-| **D** · Inversión de dependencias | Aplicación | El caso de uso recibe interfaces por el constructor y no conoce Stripe, PostgreSQL ni el ERP; las implementaciones se conectan en `pedidos.module.js` | `crear-pedido.use-case.js`, `pedidos.module.js` |
+| **S** · Responsabilidad única | Todas las capas | Cada clase cumple una función: el controlador recibe solicitudes HTTP, el caso de uso coordina el registro, la entidad representa al paciente y el repositorio administra la persistencia. | `pacientes.controller.ts`, `registrar-paciente.use-case.ts`, `paciente.ts`, `postgres-paciente-repository.ts` |
+| **O** · Abierto/cerrado | Infraestructura | Para cambiar RENIEC por un servicio simulado o incorporar otro proveedor de identidad, se crea un nuevo adaptador sin modificar el caso de uso. | `reniec-identidad.adapter.ts`, `identidad-simulada.adapter.ts` |
+| **L** · Sustitución de Liskov | Infraestructura | Los adaptadores reales y simulados cumplen el mismo contrato `ServicioIdentidad` y pueden intercambiarse sin alterar el comportamiento esperado del caso de uso. | `reniec-identidad.adapter.ts`, `identidad-simulada.adapter.ts` |
+| **I** · Segregación de interfaces | Dominio | Cada interfaz contiene únicamente las operaciones necesarias: `ServicioIdentidad` consulta datos, `ServicioSeguros` consulta cobertura y `PacienteRepository` guarda o busca pacientes. | `servicio-identidad.ts`, `servicio-seguros.ts`, `paciente-repository.ts` |
+| **D** · Inversión de dependencias | Aplicación | El caso de uso recibe interfaces mediante el constructor y no depende directamente de PostgreSQL, RENIEC ni SIS. Las implementaciones se conectan en `pacientes.module.ts`. | `registrar-paciente.use-case.ts`, `pacientes.module.ts` |
 
-## Qué pasaría sin SOLID en el Marketplace
+## Qué pasaría sin SOLID en SIAE-HRA
 
-| Situación real | Sin SOLID | Con SOLID |
+| **Situación** | **Sin SOLID** | **Con SOLID** |
 |---|---|---|
-| Se cambia Stripe por otra pasarela | Hay que modificar el caso de uso de compra | Solo se crea un nuevo adaptador |
-| Se cambia el ERP | Se modifica el código del módulo Pedidos | Solo se reemplaza `ErpRestAdapter` |
-| Se quiere probar la compra | Se necesita PostgreSQL y la pasarela real | Se prueba con implementaciones en memoria |
-| Cambia una regla del pedido | Hay que buscarla en controladores y servicios | Está solo en la entidad `Pedido` |
+| Se cambia la API de RENIEC. | Es necesario modificar el caso de uso de registro. | Solo se reemplaza el adaptador de identidad. |
+| Se cambia el servicio de seguros. | Se modifica directamente la lógica de registro de pacientes. | Se implementa otro adaptador que respete `ServicioSeguros`. |
+| Se quiere probar el registro de pacientes. | Se necesita conexión con PostgreSQL y servicios externos. | Se utilizan repositorios y servicios simulados. |
+| Cambia una regla de registro provisional. | La regla puede estar distribuida entre controladores y servicios. | Se modifica la regla correspondiente en el dominio. |
+| Se cambia PostgreSQL por otra base de datos. | Es necesario modificar la lógica de negocio. | Se reemplaza la implementación del repositorio. |
 
 ## Relación con Clean Architecture y los patrones
 
-| Principio | Lo cumple en el proyecto |
+| **Principio** | **Cómo se cumple en el proyecto** |
 |---|---|
-| Responsabilidad única | La separación en capas de Clean Architecture |
-| Abierto/cerrado y Liskov | El patrón Adapter (pasarela de pagos y ERP) |
-| Segregación de interfaces | Los puertos del dominio (`PaymentPort`, `ErpPort`, `OrderRepository`) |
-| Inversión de dependencias | El patrón Repository y la regla de dependencia: las capas externas dependen del dominio |
+| Responsabilidad única | Mediante la separación de responsabilidades entre presentación, aplicación, dominio e infraestructura. |
+| Abierto/cerrado y Liskov | Mediante el patrón Adaptador para RENIEC, seguros y otros servicios hospitalarios. |
+| Segregación de interfaces | Mediante contratos específicos como `ServicioIdentidad`, `ServicioSeguros` y `PacienteRepository`. |
+| Inversión de dependencias | Mediante el patrón Repositorio, la inyección de dependencias y los contratos definidos en el dominio. |
 
+## Beneficios
+
+- Facilita el mantenimiento y las pruebas unitarias del sistema.
+- Permite reemplazar integraciones externas sin modificar las reglas de negocio.
+- Reduce el acoplamiento entre módulos.
+- Favorece la reutilización y organización del código.
+- Permite trabajar con APIs simuladas durante el desarrollo académico.
+- Facilita la incorporación futura de historia clínica, laboratorio, imágenes médicas y farmacia.

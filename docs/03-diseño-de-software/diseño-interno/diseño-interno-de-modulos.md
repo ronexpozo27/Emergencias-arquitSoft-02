@@ -1,284 +1,487 @@
 # Diseño interno de módulos
 
-> **Proyecto:** Marketplace · **Backend:** Node.js + TypeScript · **Módulo de referencia:** Pedidos  
-> **Enfoque arquitectónico:** Clean Architecture dentro de cada módulo del monolito modular  
-> **Nivel C4:** 4 – Código · **Versión:** 1.0
-
----
+**Proyecto:** SIAE-HRA — Sistema Integrado de Atención de Emergencias del Hospital Regional de Ayacucho  
+**Backend propuesto:** Node.js + TypeScript + Express  
+**Módulo de referencia:** Pacientes  
+**Enfoque arquitectónico:** Clean Architecture dentro de un monolito modular  
+**Nivel C4:** 4 – Código  
+**Versión:** 1.0
 
 ## 1. Propósito
 
-Este documento describe **cómo se organiza el código dentro de un módulo** del backend. Tiene tres objetivos:
+Este documento describe cómo se organiza el código dentro del módulo **Pacientes** del SIAE-HRA.
 
-- que todos los módulos se construyan con la misma estructura;
-- que las reglas de negocio queden aisladas de la tecnología;
-- que cualquier integrante del equipo sepa dónde va cada archivo y de qué puede depender.
+Tiene tres objetivos:
 
+- Establecer una estructura común para los módulos del sistema.
+- Mantener las reglas de negocio separadas de las tecnologías externas.
+- Facilitar el mantenimiento, las pruebas y la integración con RENIEC y servicios de seguros.
+
+El módulo permite registrar pacientes durante la atención inicial de emergencias, incluyendo el registro provisional cuando no se dispone de DNI o los servicios externos no responden.
 
 ## 2. Estructura de carpetas
 
 ```text
 src/
 └── modules/
-    └── pedidos/
+    └── pacientes/
         ├── dominio/
-        │   ├── pedido.ts                    Entidad Pedido y sus reglas
-        │   ├── item-pedido.ts               Objeto de valor ItemPedido
-        │   ├── estado-pedido.ts             Enumeración EstadoPedido
-        │   ├── order-repository.ts          Interfaz (puerto) de persistencia
-        │   ├── payment-port.ts              Interfaz (puerto) de cobro
-        │   └── resultado-cobro.ts           DTO de respuesta del cobro
+        │   ├── paciente.ts
+        │   ├── tipo-documento.ts
+        │   ├── paciente-repository.ts
+        │   ├── servicio-identidad.ts
+        │   ├── servicio-seguros.ts
+        │   ├── datos-identidad.ts
+        │   └── datos-seguro.ts
+        │
         ├── aplicacion/
-        │   ├── crear-pedido.use-case.ts     Caso de uso CrearPedido
-        │   └── crear-pedido.command.ts      Datos de entrada del caso de uso
+        │   ├── registrar-paciente.use-case.ts
+        │   └── registrar-paciente.command.ts
+        │
         ├── infraestructura/
-        │   ├── postgres-order-repository.ts Implementación con PostgreSQL
-        │   ├── stripe-payment.adapter.ts    Implementación con Stripe
-        │   └── paypal-payment.adapter.ts    Implementación con PayPal
+        │   ├── postgres-paciente-repository.ts
+        │   ├── reniec-identidad.adapter.ts
+        │   └── sis-seguros.adapter.ts
+        │
         ├── presentacion/
-        │   ├── order.controller.ts          Traduce HTTP ⇄ caso de uso
-        │   └── pedidos.routes.ts            Rutas /api/v1/pedidos
-        ├── pedidos.module.ts                Raíz de composición del módulo
-        └── index.ts                         API pública del módulo
+        │   ├── pacientes.controller.ts
+        │   └── pacientes.routes.ts
+        │
+        ├── pacientes.module.ts
+        └── index.ts
 ```
 
-| Archivo | Capa | Responsabilidad | Importa de |
-|---|---|---|---|
-| `pedido.ts` | Dominio | Crear pedidos válidos, calcular el total, cambiar de estado | Solo dominio |
-| `item-pedido.ts` | Dominio | Representar un producto, su cantidad y su subtotal | Nada |
-| `estado-pedido.ts` | Dominio | Definir los estados posibles del pedido | Nada |
-| `order-repository.ts` | Dominio | Declarar **qué** operaciones de persistencia necesita el módulo | `pedido.ts` |
-| `payment-port.ts` | Dominio | Declarar **qué** necesita el módulo para cobrar | `resultado-cobro.ts` |
-| `resultado-cobro.ts` | Dominio | Estructura del resultado de un cobro | Nada |
-| `crear-pedido.use-case.ts` | Aplicación | Coordinar los pasos de la compra | Dominio |
-| `crear-pedido.command.ts` | Aplicación | Datos de entrada validados del caso de uso | Nada |
-| `postgres-order-repository.ts` | Infraestructura | Guardar y leer pedidos en PostgreSQL | Dominio + driver de BD |
-| `stripe-payment.adapter.ts` | Infraestructura | Traducir `cobrar()` a la API de Stripe | Dominio + SDK de Stripe |
-| `paypal-payment.adapter.ts` | Infraestructura | Traducir `cobrar()` a la API de PayPal | Dominio + SDK de PayPal |
-| `order.controller.ts` | Presentación | Leer la petición HTTP, invocar el caso de uso y responder | Aplicación |
-| `pedidos.routes.ts` | Presentación | Registrar las rutas en Express | Presentación |
-| `pedidos.module.ts` | Composición | Crear las instancias concretas e inyectarlas | Todas las capas |
-| `index.ts` | Composición | Exponer solo lo que otros módulos pueden usar | `pedidos.module.ts` |
+### Responsabilidad de los archivos
 
----
+| **Archivo** | **Capa** | **Responsabilidad** |
+|---|---|---|
+| paciente.ts | Dominio | Representar al paciente y sus reglas de registro. |
+| tipo-documento.ts | Dominio | Definir los tipos de identificación. |
+| paciente-repository.ts | Dominio | Definir el contrato de persistencia. |
+| servicio-identidad.ts | Dominio | Definir el contrato para consultar identidad. |
+| servicio-seguros.ts | Dominio | Definir el contrato para consultar aseguramiento. |
+| datos-identidad.ts | Dominio | Representar los datos obtenidos de RENIEC. |
+| datos-seguro.ts | Dominio | Representar los datos del seguro. |
+| registrar-paciente.use-case.ts | Aplicación | Coordinar el registro del paciente. |
+| registrar-paciente.command.ts | Aplicación | Definir los datos de entrada del caso de uso. |
+| postgres-paciente-repository.ts | Infraestructura | Implementar almacenamiento en PostgreSQL. |
+| reniec-identidad.adapter.ts | Infraestructura | Integrar el servicio de identidad RENIEC. |
+| sis-seguros.adapter.ts | Infraestructura | Integrar la consulta de aseguramiento. |
+| pacientes.controller.ts | Presentación | Recibir solicitudes HTTP y devolver respuestas. |
+| pacientes.routes.ts | Presentación | Definir las rutas REST. |
+| pacientes.module.ts | Composición | Crear e inyectar las dependencias del módulo. |
+| index.ts | API pública | Exponer las funcionalidades necesarias para otros módulos. |
 
 ## 3. Capas del módulo y regla de dependencia
 
-![Diagrama de paquetes del módulo Pedidos](/img/paquetes-modulo-pedidos.png)
+### Diagrama de paquetes del módulo Pacientes
 
-**Regla de dependencia:** el código solo puede importar hacia el centro (dominio). El dominio no conoce Express, PostgreSQL ni Stripe.
+![Diagrama de paquetes del módulo Pacientes](../../../img/Diagrama_paquetes.png)
 
-| Capa | Contiene | Responsabilidad | Puede depender de | **No** puede depender de |
+**Regla de dependencia:** las dependencias del código apuntan hacia el dominio.
+
+El dominio no debe conocer Express, PostgreSQL, RENIEC ni otros servicios externos.
+
+| **Capa** | **Contiene** | **Responsabilidad** | **Puede depender de** | **No puede depender de** |
 |---|---|---|---|---|
-| **Dominio** | Entidades, objetos de valor, enumeraciones, interfaces (puertos) | Reglas de negocio que serían ciertas con cualquier tecnología | Nada externo | Aplicación, infraestructura, presentación, Express, ORM, SDK |
-| **Aplicación** | Casos de uso, comandos | Orquestar el flujo: qué paso va primero y qué hacer si falla | Dominio | Infraestructura, presentación, Express, ORM |
-| **Infraestructura** | Repositorios concretos, adaptadores de servicios externos | Implementar las interfaces del dominio con una tecnología | Dominio, librerías externas | Aplicación, presentación |
-| **Presentación** | Controladores, rutas | Traducir HTTP a llamadas del caso de uso y viceversa | Aplicación | Infraestructura, base de datos |
-| **Composición** | `pedidos.module.ts` | Elegir implementaciones concretas y conectarlas | Todas | — |
+| Dominio | Entidades, reglas e interfaces | Definir las reglas de registro de pacientes. | Elementos internos del dominio. | Aplicación, infraestructura, presentación y frameworks. |
+| Aplicación | Casos de uso y comandos | Coordinar el registro y las consultas externas. | Dominio. | Controladores, base de datos y adaptadores concretos. |
+| Infraestructura | Repositorios y adaptadores | Implementar persistencia y conexiones externas. | Contratos del dominio y librerías técnicas. | Controladores HTTP. |
+| Presentación | Controladores y rutas | Recibir solicitudes y devolver respuestas JSON. | Aplicación. | Acceso directo a base de datos. |
+| Composición | pacientes.module.ts | Construir las dependencias y conectarlas. | Todas las capas. | — |
 
-> **Cómo comprobarlo en el código:** basta revisar los `import` de `dominio/`. Si aparece `express`, `pg`, `stripe` o cualquier archivo de `infraestructura/`, la regla se rompió.
-
----
+**Ejemplo:** `RegistrarPacienteUseCase` utiliza la interfaz `ServicioIdentidad`, pero no conoce cómo se realiza la petición HTTP hacia RENIEC.
 
 ## 4. Diagrama de clases
 
-![Diagrama de clases del módulo Pedidos](/img/clases-modulo-pedidos.png)
+### Diagrama UML del módulo Pacientes
 
-### 4.1 Notación UML utilizada
+![Diagrama de clases del módulo Pacientes](../../../img/Diagrama_clases.png)
 
-| Símbolo | Significado | Ejemplo en el diagrama |
+### 4.1. Clases principales
+
+| **Clase o interfaz** | **Responsabilidad** |
+|---|---|
+| PacientesController | Recibir las solicitudes de registro. |
+| RegistrarPacienteUseCase | Ejecutar el caso de uso registrar paciente. |
+| RegistrarPacienteCommand | Transportar los datos de entrada. |
+| Paciente | Representar la entidad paciente. |
+| PacienteRepository | Definir operaciones para guardar y consultar pacientes. |
+| ServicioIdentidad | Definir operaciones de consulta de identidad. |
+| ServicioSeguros | Definir operaciones de consulta de aseguramiento. |
+| PostgresPacienteRepository | Implementar persistencia en PostgreSQL. |
+| ReniecIdentidadAdapter | Implementar consultas de identidad. |
+| SisSegurosAdapter | Implementar consultas de seguros. |
+
+### 4.2. Notación UML utilizada
+
+| **Símbolo** | **Significado** | **Ejemplo** |
 |---|---|---|
-| Línea continua con flecha abierta | Asociación: la clase guarda una referencia a la otra | `CrearPedidoUseCase` → `OrderRepository` |
-| Línea discontinua con flecha abierta | Dependencia: la usa o la crea, pero no la guarda | `OrderController` «crea» `CrearPedidoCommand` |
-| Línea discontinua con triángulo hueco | Realización: implementa una interfaz | `PostgresOrderRepository` ▷ `OrderRepository` |
-| Rombo relleno | Composición: la parte no existe sin el todo | `Pedido` ◆ `ItemPedido` (1..*) |
-| Nombre en cursiva + «interface» | Interfaz (contrato sin implementación) | `OrderRepository`, `PaymentPort` |
-| `-` / `+` | Privado / público | `- estado`, `+ total()` |
+| Línea continua con flecha | Asociación entre clases. | Controller → UseCase |
+| Línea discontinua con flecha | Dependencia o creación. | UseCase → Paciente |
+| Línea discontinua con triángulo hueco | Implementación de interfaz. | Adapter → ServicioIdentidad |
+| «interface» | Contrato sin implementación concreta. | PacienteRepository |
+| «entity» | Entidad de dominio. | Paciente |
+| «DTO» | Objeto de transferencia de datos. | RegistrarPacienteCommand |
+| + / - | Público / privado. | + crear(), - dni |
 
+## 5. Flujo de ejecución: registrar paciente
 
-## 5. Flujo de ejecución: crear pedido
+### Diagrama de secuencia
 
-![Diagrama de secuencia de crear pedido](/img/secuencia-crear-pedido.png)
+![Diagrama de secuencia del registro de pacientes](../../../img/Diagrama_secuencia.png)
 
-| Paso | Origen → destino | Acción | Capa |
+### Flujo principal
+
+| **Paso** | **Origen → Destino** | **Acción** | **Capa** |
 |---|---|---|---|
-| 1 | Cliente web → `OrderController` | `POST /api/v1/pedidos` con `clienteId`, `items` y `tokenPago` | Presentación |
-| 2 | `OrderController` → `CrearPedidoUseCase` | `ejecutar(cmd)` | Presentación → Aplicación |
-| 3 | `CrearPedidoUseCase` → `Pedido` | `crear(clienteId, items)`; se validan RN-01 a RN-03; estado PENDIENTE | Aplicación → Dominio |
-| 4 | `CrearPedidoUseCase` → `Pedido` | `total()` (RN-04) | Aplicación → Dominio |
-| 5 | `CrearPedidoUseCase` → `PaymentPort` | `cobrar(monto, tokenPago)` | Aplicación → Dominio (interfaz) |
-| 6 | `StripePaymentAdapter` → pasarela | Solicitud de cobro por HTTPS | Infraestructura → externo |
-| 7 | `CrearPedidoUseCase` → `Pedido` | Si fue aprobado: `marcarPagado(autorizacion)` (RN-05) | Aplicación → Dominio |
-| 8 | `CrearPedidoUseCase` → `OrderRepository` | `guardar(pedido)` | Aplicación → Dominio (interfaz) |
-| 9 | `PostgresOrderRepository` → PostgreSQL | `INSERT` del pedido y sus ítems | Infraestructura → BD |
-| 10 | `OrderController` → Cliente web | `201 Created` con `pedidoId` | Presentación |
-| 11–12 | Alternativa | Si el pago es rechazado: no se guarda el pedido y se responde `402` | Aplicación → Presentación |
+| 1 | Aplicación web → PacientesController | POST /api/v1/pacientes con DNI o datos disponibles. | Presentación |
+| 2 | PacientesController → RegistrarPacienteUseCase | Ejecutar el caso de uso. | Presentación → Aplicación |
+| 3 | RegistrarPacienteUseCase → PacienteRepository | Buscar un registro existente por DNI cuando corresponda. | Aplicación → Dominio |
+| 4 | RegistrarPacienteUseCase → ServicioIdentidad | Consultar identidad del paciente. | Aplicación → Dominio |
+| 5 | ReniecIdentidadAdapter → RENIEC | Solicitud de identidad mediante HTTPS. | Infraestructura → Externo |
+| 6 | RENIEC → RegistrarPacienteUseCase | Devolver los datos de identidad disponibles. | Externo → Aplicación |
+| 7 | RegistrarPacienteUseCase → ServicioSeguros | Consultar aseguramiento. | Aplicación → Dominio |
+| 8 | SisSegurosAdapter → Seguros | Solicitud de cobertura mediante HTTPS. | Infraestructura → Externo |
+| 9 | RegistrarPacienteUseCase → Paciente | Crear la entidad paciente. | Aplicación → Dominio |
+| 10 | RegistrarPacienteUseCase → PacienteRepository | Guardar el paciente. | Aplicación → Dominio |
+| 11 | PostgresPacienteRepository → PostgreSQL | INSERT del registro del paciente. | Infraestructura → Datos |
+| 12 | PacientesController → Aplicación web | Responder 201 Created con pacienteId. | Presentación |
 
+### Flujo alternativo
+
+Si RENIEC no responde o el paciente no dispone de DNI:
+
+1. El sistema permite ingresar los datos disponibles manualmente.
+2. Se crea un registro provisional.
+3. Se guarda la información disponible del paciente.
+4. Se permite continuar con la atención inicial de emergencia.
+
+La falta de respuesta del servicio de seguros tampoco debe impedir el registro.
 
 ## 6. Código de referencia
 
-### 6.1 Dominio · entidad e interfaces
+Los siguientes ejemplos muestran cómo podría implementarse el módulo utilizando Arquitectura Limpia.
 
-```ts
-// dominio/pedido.ts
-import { ItemPedido } from './item-pedido';
-import { EstadoPedido } from './estado-pedido';
-import { ReglaNegocioError } from '../../../shared/errores';
+**Nota:** son fragmentos de referencia para el diseño académico; no representan código funcional ya implementado.
 
-export class Pedido {
-  private constructor(
-    readonly id: string,
-    readonly clienteId: string,
-    private readonly items: ItemPedido[],
-    private estado: EstadoPedido,
-    private autorizacion?: string,
-  ) {}
+### 6.1. Dominio: entidad y contratos
 
-  static crear(clienteId: string, items: ItemPedido[]): Pedido {
-    if (!clienteId) throw new ReglaNegocioError('RN-01: el pedido debe tener un cliente');
-    if (items.length === 0) throw new ReglaNegocioError('RN-02: el pedido debe tener ítems');
-    return new Pedido(crypto.randomUUID(), clienteId, items, EstadoPedido.PENDIENTE);
-  }
+#### Entidad Paciente
 
-  total(): number {                                            // RN-04
-    return this.items.reduce((suma, item) => suma + item.subtotal(), 0);
-  }
+```typescript
+// dominio/paciente.ts
 
-  marcarPagado(autorizacion: string): void {                   // RN-05
-    if (this.estado !== EstadoPedido.PENDIENTE) {
-      throw new ReglaNegocioError('RN-05: solo un pedido pendiente puede pagarse');
-    }
-    this.estado = EstadoPedido.PAGADO;
-    this.autorizacion = autorizacion;
-  }
+import type { DatosSeguro } from './datos-seguro';
 
-  cancelar(): void {                                           // RN-06
-    if (this.estado === EstadoPedido.DESPACHADO || this.estado === EstadoPedido.ENTREGADO) {
-      throw new ReglaNegocioError('RN-06: el pedido ya fue despachado');
-    }
-    this.estado = EstadoPedido.CANCELADO;
-  }
-}
-```
-
-```ts
-// dominio/order-repository.ts
-import { Pedido } from './pedido';
-
-export interface OrderRepository {
-  guardar(pedido: Pedido): Promise<void>;
-  buscarPorId(id: string): Promise<Pedido | null>;
-}
-```
-
-```ts
-// dominio/payment-port.ts
-import { ResultadoCobro } from './resultado-cobro';
-
-export interface PaymentPort {
-  cobrar(monto: number, token: string): Promise<ResultadoCobro>;
-}
-```
-
-### 6.2 Aplicación · caso de uso
-
-```ts
-// aplicacion/crear-pedido.use-case.ts
-import { Pedido } from '../dominio/pedido';
-import { ItemPedido } from '../dominio/item-pedido';
-import { OrderRepository } from '../dominio/order-repository';
-import { PaymentPort } from '../dominio/payment-port';
-import { CrearPedidoCommand } from './crear-pedido.command';
-import { PagoRechazadoError } from '../../../shared/errores';
-
-export class CrearPedidoUseCase {
+export class Paciente {
   constructor(
-    private readonly orderRepository: OrderRepository,   // interfaz, no PostgreSQL
-    private readonly paymentPort: PaymentPort,           // interfaz, no Stripe
+    public readonly id: string,
+    public readonly dni: string | undefined,
+    public readonly nombres: string | undefined,
+    public readonly apellidos: string | undefined,
+    public readonly provisional: boolean,
+    public readonly seguro?: DatosSeguro
   ) {}
-
-  async ejecutar(cmd: CrearPedidoCommand): Promise<string> {
-    const items = cmd.items.map((i) => new ItemPedido(i.productoId, i.cantidad, i.precioUnitario));
-    const pedido = Pedido.crear(cmd.clienteId, items);
-
-    const cobro = await this.paymentPort.cobrar(pedido.total(), cmd.tokenPago);
-    if (!cobro.aprobado) throw new PagoRechazadoError(cobro.motivoRechazo);
-
-    pedido.marcarPagado(cobro.autorizacion);
-    await this.orderRepository.guardar(pedido);
-    return pedido.id;
-  }
 }
 ```
 
-> El precio unitario de cada ítem debe obtenerse del módulo **Catálogo** a través de su API pública, no del frontend. Se omite aquí para mantener el ejemplo corto.
+#### Datos de identidad
 
-### 6.3 Infraestructura · adaptador
+```typescript
+// dominio/datos-identidad.ts
 
-```ts
-// infraestructura/stripe-payment.adapter.ts
-import Stripe from 'stripe';
-import { PaymentPort } from '../dominio/payment-port';
-import { ResultadoCobro } from '../dominio/resultado-cobro';
+export interface DatosIdentidad {
+  dni: string;
+  nombres: string;
+  apellidos: string;
+}
+```
 
-export class StripePaymentAdapter implements PaymentPort {
-  constructor(private readonly cliente: Stripe) {}
+#### Datos del seguro
 
-  async cobrar(monto: number, token: string): Promise<ResultadoCobro> {
-    // Traduce el lenguaje del proveedor al lenguaje del dominio.
-    // La llamada exacta depende de la versión del SDK y del flujo de pago elegido.
-    const pago = await this.cliente.paymentIntents.create({
-      amount: Math.round(monto * 100),
-      currency: 'pen',
-      payment_method: token,
-      confirm: true,
-    });
+```typescript
+// dominio/datos-seguro.ts
+
+export interface DatosSeguro {
+  asegurado: boolean;
+  entidad?: string;
+  numeroAfiliacion?: string;
+}
+```
+
+#### Contrato del repositorio
+
+```typescript
+// dominio/paciente-repository.ts
+
+import type { Paciente } from './paciente';
+
+export interface PacienteRepository {
+  guardar(paciente: Paciente): Promise<void>;
+
+  buscarPorDni(dni: string): Promise<Paciente | null>;
+}
+```
+
+#### Contrato del servicio de identidad
+
+```typescript
+// dominio/servicio-identidad.ts
+
+import type { DatosIdentidad } from './datos-identidad';
+
+export interface ServicioIdentidad {
+  consultarPorDni(dni: string): Promise<DatosIdentidad | null>;
+}
+```
+
+#### Contrato del servicio de seguros
+
+```typescript
+// dominio/servicio-seguros.ts
+
+import type { DatosSeguro } from './datos-seguro';
+
+export interface ServicioSeguros {
+  consultarCobertura(dni: string): Promise<DatosSeguro | null>;
+}
+```
+
+### 6.2. Aplicación: caso de uso
+
+#### Comando de registro
+
+```typescript
+// aplicacion/registrar-paciente.command.ts
+
+export interface RegistrarPacienteCommand {
+  dni?: string;
+  nombres?: string;
+  apellidos?: string;
+}
+```
+
+#### RegistrarPacienteUseCase
+
+```typescript
+// aplicacion/registrar-paciente.use-case.ts
+
+import { randomUUID } from 'node:crypto';
+
+import { Paciente } from '../dominio/paciente';
+
+import type { PacienteRepository }
+  from '../dominio/paciente-repository';
+
+import type { ServicioIdentidad }
+  from '../dominio/servicio-identidad';
+
+import type { ServicioSeguros }
+  from '../dominio/servicio-seguros';
+
+import type { RegistrarPacienteCommand }
+  from './registrar-paciente.command';
+
+export class RegistrarPacienteUseCase {
+
+  constructor(
+    private readonly pacientes: PacienteRepository,
+    private readonly identidad: ServicioIdentidad,
+    private readonly seguros: ServicioSeguros
+  ) {}
+
+  async ejecutar(cmd: RegistrarPacienteCommand) {
+
+    // Verificar si el paciente ya está registrado.
+    if (cmd.dni && /^\d{8}$/.test(cmd.dni)) {
+
+      const existente =
+        await this.pacientes.buscarPorDni(cmd.dni);
+
+      if (existente) {
+        return {
+          pacienteId: existente.id,
+          provisional: existente.provisional
+        };
+      }
+    }
+
+    let datosIdentidad = null;
+    let datosSeguro = null;
+
+    // Consultar integraciones cuando exista un DNI válido.
+    if (cmd.dni && /^\d{8}$/.test(cmd.dni)) {
+
+      const [resultadoIdentidad, resultadoSeguro] =
+        await Promise.allSettled([
+
+          this.identidad.consultarPorDni(cmd.dni),
+
+          this.seguros.consultarCobertura(cmd.dni)
+
+        ]);
+
+      if (resultadoIdentidad.status === 'fulfilled') {
+        datosIdentidad = resultadoIdentidad.value;
+      }
+
+      if (resultadoSeguro.status === 'fulfilled') {
+        datosSeguro = resultadoSeguro.value;
+      }
+    }
+
+    // Crear el paciente con los datos disponibles.
+    const paciente = new Paciente(
+      randomUUID(),
+      cmd.dni,
+      datosIdentidad?.nombres ?? cmd.nombres,
+      datosIdentidad?.apellidos ?? cmd.apellidos,
+      !datosIdentidad,
+      datosSeguro ?? undefined
+    );
+
+    // Guardar el registro.
+    await this.pacientes.guardar(paciente);
+
     return {
-      aprobado: pago.status === 'succeeded',
-      autorizacion: pago.id,
-      motivoRechazo: pago.status === 'succeeded' ? undefined : pago.status,
+      pacienteId: paciente.id,
+      provisional: paciente.provisional
     };
   }
 }
 ```
 
-### 6.4 Presentación · controlador
+El caso de uso permite que el registro continúe cuando los servicios externos no responden.
 
-```ts
-// presentacion/order.controller.ts
-import { Request, Response } from 'express';
-import { CrearPedidoUseCase } from '../aplicacion/crear-pedido.use-case';
+### 6.3. Infraestructura: adaptadores
 
-export class OrderController {
-  constructor(private readonly crearPedido: CrearPedidoUseCase) {}
+#### Adaptador de RENIEC
 
-  crear = async (req: Request, res: Response): Promise<void> => {
-    const pedidoId = await this.crearPedido.ejecutar({
-      clienteId: req.user.id,            // lo agrega el middleware JWT; no viene del body
-      items: req.body.items,
-      tokenPago: req.body.tokenPago,
-    });
-    res.status(201).json({ pedidoId });
+```typescript
+// infraestructura/reniec-identidad.adapter.ts
+
+import type { ServicioIdentidad }
+  from '../dominio/servicio-identidad';
+
+import type { DatosIdentidad }
+  from '../dominio/datos-identidad';
+
+export class ReniecIdentidadAdapter
+  implements ServicioIdentidad {
+
+  async consultarPorDni(
+    dni: string
+  ): Promise<DatosIdentidad | null> {
+
+    // Integración futura con RENIEC.
+    // En el proyecto académico puede utilizarse
+    // una API simulada.
+
+    return null;
+  }
+}
+```
+
+#### Adaptador de seguros
+
+```typescript
+// infraestructura/sis-seguros.adapter.ts
+
+import type { ServicioSeguros }
+  from '../dominio/servicio-seguros';
+
+import type { DatosSeguro }
+  from '../dominio/datos-seguro';
+
+export class SisSegurosAdapter
+  implements ServicioSeguros {
+
+  async consultarCobertura(
+    dni: string
+  ): Promise<DatosSeguro | null> {
+
+    // Integración futura con servicio de seguros.
+    // Para las pruebas se utilizarán datos simulados.
+
+    return null;
+  }
+}
+```
+
+Los adaptadores implementan los contratos del dominio, permitiendo sustituir las APIs simuladas por servicios autorizados sin modificar el caso de uso.
+
+### 6.4. Presentación: controlador
+
+```typescript
+// presentacion/pacientes.controller.ts
+
+import type { Request, Response } from 'express';
+
+import { RegistrarPacienteUseCase }
+  from '../aplicacion/registrar-paciente.use-case';
+
+export class PacientesController {
+
+  constructor(
+    private readonly registrar: RegistrarPacienteUseCase
+  ) {}
+
+  crear = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+
+    const resultado =
+      await this.registrar.ejecutar(req.body);
+
+    res.status(201).json(resultado);
   };
 }
 ```
 
-### 6.5 Raíz de composición
+El controlador recibe la solicitud HTTP, invoca el caso de uso y devuelve una respuesta JSON.
 
-```ts
-// pedidos.module.ts
-import Stripe from 'stripe';
-import { Pool } from 'pg';
-import { PostgresOrderRepository } from './infraestructura/postgres-order-repository';
-import { StripePaymentAdapter } from './infraestructura/stripe-payment.adapter';
-import { CrearPedidoUseCase } from './aplicacion/crear-pedido.use-case';
-import { OrderController } from './presentacion/order.controller';
+### 6.5. Raíz de composición
 
-export function crearModuloPedidos(db: Pool, stripe: Stripe) {
-  const orderRepository = new PostgresOrderRepository(db);
-  const paymentPort = new StripePaymentAdapter(stripe);   // cambiar a PayPal = cambiar esta línea
-  const crearPedido = new CrearPedidoUseCase(orderRepository, paymentPort);
-  return { controller: new OrderController(crearPedido) };
-}
+```typescript
+// pacientes.module.ts
+// Fragmento conceptual de composición del módulo.
+
+const registrarPaciente = new RegistrarPacienteUseCase(
+  pacienteRepository,
+  servicioIdentidad,
+  servicioSeguros
+);
+
+const controller = new PacientesController(
+  registrarPaciente
+);
 ```
 
+La raíz de composición es responsable de seleccionar las implementaciones concretas e inyectarlas en los casos de uso.
+
+## 7. Reglas de negocio del módulo
+
+| **Código** | **Regla de negocio** |
+|---|---|
+| RN-01 | El sistema permite registrar pacientes sin DNI mediante un registro provisional. |
+| RN-02 | Una falla del servicio RENIEC no debe impedir el registro del paciente. |
+| RN-03 | La falta de seguro confirmado no debe impedir la atención inicial. |
+| RN-04 | El sistema verifica si existe un paciente registrado antes de crear un nuevo registro con DNI. |
+| RN-05 | Los datos del paciente deben estar protegidos mediante autenticación, autorización y auditoría. |
+
+## 8. Resumen del diseño
+
+El módulo **Pacientes** utiliza Arquitectura Limpia para separar las responsabilidades:
+
+- **Presentación:** recibe solicitudes HTTP.
+- **Aplicación:** coordina el registro de pacientes.
+- **Dominio:** define las entidades, contratos y reglas de negocio.
+- **Infraestructura:** implementa la persistencia y las integraciones externas.
+
+Esta separación permite modificar las tecnologías utilizadas sin afectar innecesariamente las reglas principales del sistema.
+
+El diseño facilita la integración futura con **RENIEC, servicios de aseguramiento y otros sistemas hospitalarios**, manteniendo como prioridad la continuidad de la atención inicial de emergencias.
+
+**Observación:** antes de una implementación real, se deberán incorporar validación de entradas, gestión de duplicados, tiempos de espera de APIs, auditoría y manejo de errores.

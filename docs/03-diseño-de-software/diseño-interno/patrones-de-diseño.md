@@ -2,40 +2,46 @@
 
 ## Objetivo
 
-Documentar los patrones de diseño aplicados en el backend del Marketplace, indicando dónde se usan, qué problema resuelven y con qué tecnología se implementan, para que el equipo programe de forma uniforme.
+Documentar los patrones de diseño propuestos para el backend del SIAE-HRA, indicando dónde se utilizarán, qué problemas resuelven y con qué tecnologías se implementarán.
 
 ## Contexto
 
-- **Estilo:** monolito modular (Node.js + Express).
-- **Enfoque interno:** Clean Architecture.
+- **Estilo:** monolito modular (Node.js + TypeScript + Express).
+- **Enfoque interno:** Arquitectura Limpia (Clean Architecture).
 - **Base:** diagrama de componentes (C4 nivel 3).
+- **Alcance:** atención inicial de emergencias.
 
-## Patrones aplicados
+## Patrones de diseño seleccionados
 
-| Patrón | Dónde se usa | Problema que resuelve | Se implementa con | Archivos en el código |
+| **Patrón** | **Dónde se usa** | **Problema que resuelve** | **Se implementa con** | **Archivos propuestos** |
 |---|---|---|---|---|
-| Adapter | Pagos → Pasarela de pagos | La pasarela tiene su propia API | SDK o API REST de la pasarela | `payment-port.js`, `stripe-payment.adapter.js` |
-| Adapter | Pedidos → ERP | El ERP tiene su propia API | API REST del ERP (axios o fetch) | `erp-port.js`, `erp.adapter.js` |
-| Repository | Todos los módulos → Base de datos | El negocio no debe conocer SQL | PostgreSQL (librería `pg` u ORM) | `order-repository.js`, `postgres-order-repository.js` |
-| Decorator | Catálogo → Caché | Consultar productos más rápido sin modificar el repositorio | Redis | `cached-product-repository.js` |
+| Adaptador | Pacientes → RENIEC | RENIEC utiliza un servicio externo de identidad. | API REST o servicio autorizado | `servicio-identidad.ts`, `reniec-identidad.adapter.ts` |
+| Adaptador | Pacientes → Seguros (SIS) | El servicio de seguros tiene su propia interfaz de consulta. | API autorizada o simulada | `servicio-seguros.ts`, `sis-seguros.adapter.ts` |
+| Adaptador | Atención médica → Historia clínica | Permite consultar antecedentes clínicos de otro sistema. | API REST / HL7 FHIR | `servicio-historia-clinica.ts`, `historia-clinica.adapter.ts` |
+| Adaptador | Órdenes → Laboratorio e imágenes | Los sistemas hospitalarios utilizan interfaces diferentes. | API REST / HL7 FHIR | `servicio-examenes.ts`, `examenes.adapter.ts` |
+| Repositorio | Pacientes → Base de datos | El dominio no debe depender directamente de SQL. | PostgreSQL | `paciente-repository.ts`, `postgres-paciente-repository.ts` |
+| Decorador | Consultas clínicas → Auditoría | Registrar accesos a información sensible sin modificar las reglas de negocio. | TypeScript y servicio de auditoría | `audited-historia-clinica.decorator.ts` |
 
 ## Cómo funciona cada patrón
 
-| Patrón | En pocas palabras |
+| **Patrón** | **En pocas palabras** |
 |---|---|
-| Adapter | Traduce: el sistema dice `cobrar(monto)` y el adaptador lo convierte en la llamada propia de la pasarela o del ERP. |
-| Repository | El negocio dice `guardar(pedido)`; el repositorio escribe el SQL. |
-| Decorator | Busca primero en Redis; si no está, consulta PostgreSQL y lo guarda en Redis para la próxima vez. |
+| Adaptador | El sistema solicita `consultarPorDni(dni)` y el adaptador convierte la operación en una petición al servicio RENIEC. |
+| Repositorio | El negocio ejecuta `guardar(paciente)` y el repositorio realiza las operaciones necesarias en PostgreSQL. |
+| Decorador | Cuando un médico consulta información clínica, el decorador registra el acceso para auditoría sin cambiar la lógica principal de consulta. |
 
-## Beneficio
+## Beneficios
 
-- Cambiar la pasarela, el ERP o la base de datos solo afecta al adaptador o al repositorio.
-- La caché con Redis se puede activar o retirar sin tocar las reglas de negocio.
+- Permite reemplazar las APIs simuladas por servicios autorizados sin modificar las reglas de negocio.
+- Facilita la integración con RENIEC, seguros, historia clínica, laboratorio e imágenes médicas.
+- Mantiene separado el acceso a la base de datos.
+- Mejora la seguridad y trazabilidad de las consultas clínicas.
+- Facilita el mantenimiento y las pruebas unitarias.
 
-## Patrones previstos para siguientes iteraciones
+## Patrones previstos para las siguientes iteraciones
 
-| Patrón | Dónde se aplicaría | Cuándo |
+| **Patrón** | **Dónde se aplicaría** | **Cuándo** |
 |---|---|---|
-| Observer | Pedidos → Notificaciones | Al implementar las notificaciones |
-| Factory | Carrito → Pedidos | Si crear el pedido se vuelve complejo |
-| Facade | Comunicación entre módulos | Cuando los módulos crezcan y necesiten una única puerta de entrada |
+| Observador | Órdenes médicas → Notificaciones | Cuando se implementen alertas de resultados de laboratorio e imágenes. |
+| Fábrica | Pacientes → Registro provisional | Cuando se requieran diferentes procedimientos de creación de pacientes según su identificación. |
+| Fachada | Atención médica → Sistemas hospitalarios | Cuando se necesite unificar las consultas de historia clínica, seguros y resultados médicos. |
